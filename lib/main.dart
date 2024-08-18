@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_magnetic_app/electromagneticfield_detector/emf.dart';
+
+import 'electromagneticfield_detector/emf.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,9 +29,8 @@ class MyHomePage extends StatelessWidget {
       appBar: AppBar(
         title: Text('EMF Detector'),
       ),
-      body: Center(
-        child: ElectromagneticFieldDetector(),
-      ),
+      // body: ElectromagneticFieldDetectorHome(),
+      body: ElectromagneticFieldDetector(),
     );
   }
 }
