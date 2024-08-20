@@ -22,6 +22,7 @@ class _ElectromagneticFieldDetectorState
   late AnimationController _controller;
   late Animation<double> _animation;
   bool isAdvanced = false;
+  bool isMagnetometerActive = true;
 
   void toggleIsAdvanced() {
     setState(() {
@@ -81,14 +82,16 @@ class _ElectromagneticFieldDetectorState
   }
 
   String _getIntensityText(double strength) {
-    if (strength < 55) return "Normal EMF detected";
-    // if (strength < 100) return Colors.yellow;
-    return "High EMF detected";
+    if (_acEMF >= 3 || _dcEMF >= 120) {
+      return "High EMF detected";
+    } else {
+      return "Normal EMF detected";
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // bool isSpinning = false;
+    bool isTick = (_acEMF >= 3 || _dcEMF >= 120);
 
     int totalEMF = _dcEMF + _acEMF;
     Color intensityColor = _getIntensityColor((totalEMF).toDouble());
@@ -173,49 +176,11 @@ class _ElectromagneticFieldDetectorState
                         children: [
                           Flexible(
                             flex: 1,
-                            child: Container(
-                              color: Colors.white,
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 5, horizontal: 8),
-                              alignment: Alignment.centerLeft,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "AC: 25 µT",
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        "Threshold: 3 µT",
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                            decoration:
-                                                TextDecoration.underline),
-                                      ),
-                                      Container(
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.green.shade100,
-                                          ),
-                                          child: Center(
-                                            child: Icon(
-                                              Icons
-                                                  .check_circle_outline_outlined,
-                                              color: Colors.green,
-                                              size: 20,
-                                            ),
-                                          ))
-                                    ],
-                                  )
-                                ],
-                              ),
+                            child: AcDcDisplay(
+                              titleName: 'AC',
+                              value: _acEMF.toStringAsFixed(0),
+                              thresholdValue: '3',
+                              isTick: isTick,
                             ),
                           ),
                           SizedBox(
@@ -223,112 +188,92 @@ class _ElectromagneticFieldDetectorState
                           ),
                           Flexible(
                             flex: 1,
-                            child: Container(
-                              color: Colors.white,
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 5, horizontal: 8),
-                              alignment: Alignment.centerLeft,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "AC: 25 µT",
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        "Threshold: 3 µT",
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                            decoration:
-                                                TextDecoration.underline),
-                                      ),
-                                      Container(
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.green.shade100,
-                                          ),
-                                          child: Center(
-                                            child: Icon(
-                                              Icons
-                                                  .check_circle_outline_outlined,
-                                              color: Colors.green,
-                                              size: 20,
-                                            ),
-                                          ))
-                                    ],
-                                  )
-                                ],
-                              ),
+                            child: AcDcDisplay(
+                              titleName: 'DC',
+                              value: _dcEMF.toStringAsFixed(0),
+                              thresholdValue: '120',
+                              isTick: isTick,
                             ),
                           ),
                         ],
                       ),
                       SizedBox(height: 20),
-                      SizedBox(
-                        height: 50,
-                        child: Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(5),
-                                color: Colors.white),
-                            padding: EdgeInsets.symmetric(
-                                vertical: 5, horizontal: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.pause),
-                                SizedBox(
-                                  width: 10,
-                                ),
-                                Text(
-                                  "Deactivate",
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            )),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            isMagnetometerActive = !isMagnetometerActive;
+                          });
+                          if (isMagnetometerActive) {
+                            _initMagnetometer(); // Restart magnetometer
+                            _controller.repeat(); // Restart animation
+                          } else {
+                            _magnetometerSubscription
+                                ?.cancel(); // Stop magnetometer
+                            _controller.stop(); // Stop animation
+                          }
+                        },
+                        child: SizedBox(
+                          height: 50,
+                          child: Container(
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(5),
+                                  color: Colors.white),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 5, horizontal: 8),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(isMagnetometerActive
+                                      ? Icons.pause
+                                      : Icons.play_arrow),
+                                  SizedBox(
+                                    width: 10,
+                                  ),
+                                  Text(
+                                    isMagnetometerActive
+                                        ? "Deactivate"
+                                        : "Activate",
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              )),
+                        ),
                       ),
                     ],
                   )
                 : SizedBox(),
             SizedBox(
+              height: 20,
+            ),
+            SizedBox(
                 width: 180,
                 child: Text(
-                  isAdvanced
-                      ? "on"
-                      : "The indicator rotates when a high emf is detected",
+                  "The indicator rotates when a high emf is detected",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
                   ),
                 )),
             SizedBox(height: 40),
-            GestureDetector(
-              onTap: () {},
-              child: SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: const Color.fromARGB(255, 232, 232, 232)),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Advanced options",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      CustomToggleButton(
-                          isAdvanced: isAdvanced, onToggle: toggleIsAdvanced),
-                    ],
-                  ),
+            SizedBox(
+              width: double.infinity,
+              height: 60,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.grey.shade100),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Advanced options",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    CustomToggleButton(
+                        isAdvanced: isAdvanced, onToggle: toggleIsAdvanced),
+                  ],
                 ),
               ),
             )
@@ -348,6 +293,63 @@ class _ElectromagneticFieldDetectorState
     _controller.dispose();
     _magnetometerSubscription?.cancel();
     super.dispose();
+  }
+}
+
+class AcDcDisplay extends StatelessWidget {
+  final String titleName;
+  final String value;
+  final String thresholdValue;
+  final bool isTick;
+  const AcDcDisplay({
+    required this.titleName,
+    required this.value,
+    required this.thresholdValue,
+    required this.isTick,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+      alignment: Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "${titleName}: ${value} µT",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Threshold: ${thresholdValue} µT",
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    decoration: TextDecoration.underline),
+              ),
+              Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.green.shade100,
+                  ),
+                  child: Center(
+                      child: isTick
+                          ? Icon(
+                              Icons.check_circle_outline_outlined,
+                              color: Colors.green,
+                              size: 20,
+                            )
+                          : SizedBox()))
+            ],
+          )
+        ],
+      ),
+    );
   }
 }
 
@@ -403,6 +405,55 @@ class _CustomToggleButtonState extends State<CustomToggleButton> {
     );
   }
 }
+
+
+            // Text(
+            //   'Electromagnetic Field Detector',
+            //   style: Theme.of(context).textTheme.headlineSmall,
+            // ),
+            // Center(
+            //   child: AnimatedBuilder(
+            //     animation: _animation,
+            //     builder: (context, child) {
+            //       return Transform.rotate(
+            //         angle: _animation.value,
+            //         child: child,
+            //       );
+            //     },
+            //     child: SvgPicture.asset(
+            //       'lib/assets/s1.svg',
+            //       semanticsLabel: 'My SVG Image',
+            //       height: 150,
+            //     ),
+            //   ),
+            // ),
+            // SizedBox(height: 16),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+            //   children: [
+            //     Column(
+            //       children: [
+            //         Text('DC EMF: ${_dcEMF.toStringAsFixed(0)} µT'),
+            //         Text('AC EMF: ${_acEMF.toStringAsFixed(0)} µT'),
+            //         Text('Total EMF: ${totalEMF.toStringAsFixed(2)} µT'),
+            //       ],
+            //     ),
+            //     Container(
+            //       width: 50,
+            //       height: 50,
+            //       decoration: BoxDecoration(
+            //         shape: BoxShape.circle,
+            //         color: intensityColor,
+            //       ),
+            //     ),
+            //   ],
+            // ),
+            // SizedBox(height: 16),
+            // Text('Individual Components:'),
+            // Text('X: ${_magneticField[0].toStringAsFixed(2)} µT'),
+            // Text('Y: ${_magneticField[1].toStringAsFixed(2)} µT'),
+            // Text('Z: ${_magneticField[2].toStringAsFixed(2)} µT'),
+
 
 // import 'dart:async';
 // import 'dart:math';
