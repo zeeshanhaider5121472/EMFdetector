@@ -21,6 +21,13 @@ class _ElectromagneticFieldDetectorState
   int _dcEMF = 0;
   late AnimationController _controller;
   late Animation<double> _animation;
+  bool isAdvanced = false;
+
+  void toggleIsAdvanced() {
+    setState(() {
+      isAdvanced = !isAdvanced;
+    });
+  }
 
   @override
   void initState() {
@@ -87,121 +94,244 @@ class _ElectromagneticFieldDetectorState
     Color intensityColor = _getIntensityColor((totalEMF).toDouble());
     String intensityText = _getIntensityText((totalEMF).toDouble());
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Text(
-            //   'Electromagnetic Field Detector',
-            //   style: Theme.of(context).textTheme.headlineSmall,
-            // ),
-            // Center(
-            //   child: AnimatedBuilder(
-            //     animation: _animation,
-            //     builder: (context, child) {
-            //       return Transform.rotate(
-            //         angle: _animation.value,
-            //         child: child,
-            //       );
-            //     },
-            //     child: SvgPicture.asset(
-            //       'lib/assets/s1.svg',
-            //       semanticsLabel: 'My SVG Image',
-            //       height: 150,
-            //     ),
-            //   ),
-            // ),
-            // SizedBox(height: 16),
-            // Row(
-            //   mainAxisAlignment: MainAxisAlignment.spaceAround,
-            //   children: [
-            //     Column(
-            //       children: [
-            //         Text('DC EMF: ${_dcEMF.toStringAsFixed(0)} µT'),
-            //         Text('AC EMF: ${_acEMF.toStringAsFixed(0)} µT'),
-            //         Text('Total EMF: ${totalEMF.toStringAsFixed(2)} µT'),
-            //       ],
-            //     ),
-            //     Container(
-            //       width: 50,
-            //       height: 50,
-            //       decoration: BoxDecoration(
-            //         shape: BoxShape.circle,
-            //         color: intensityColor,
-            //       ),
-            //     ),
-            //   ],
-            // ),
-            // SizedBox(height: 16),
-            // Text('Individual Components:'),
-            // Text('X: ${_magneticField[0].toStringAsFixed(2)} µT'),
-            // Text('Y: ${_magneticField[1].toStringAsFixed(2)} µT'),
-            // Text('Z: ${_magneticField[2].toStringAsFixed(2)} µT'),
-            Center(
-              child: SizedBox(
-                height: 500,
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Center(
-                          child: AnimatedBuilder(
-                            animation: _animation,
-                            builder: (context, child) {
-                              return Transform.rotate(
-                                angle: _animation.value,
-                                child: child,
-                              );
-                            },
-                            child: SvgPicture.asset(
-                              'lib/assets/s1.svg',
-                              semanticsLabel: 'My SVG Image',
-                              height: 200,
+            Container(
+              // color: Colors.white,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20), color: Colors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: SizedBox(
+                      height: isAdvanced ? 350 : 450,
+                      child: Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Center(
+                              child: AnimatedBuilder(
+                                animation: _animation,
+                                builder: (context, child) {
+                                  return Transform.rotate(
+                                    angle: _animation.value,
+                                    child: child,
+                                  );
+                                },
+                                child: SvgPicture.asset(
+                                  'lib/assets/s1.svg',
+                                  semanticsLabel: 'My SVG Image',
+                                  height: 200,
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 1, horizontal: 15),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SvgPicture.asset(
+                          'lib/assets/sound-on.svg',
+                          semanticsLabel: 'My SVG Image',
+                          height: 24,
+                        ),
+                        Container(
+                          alignment: Alignment.center,
+                          height: 50,
+                          child: Text(
+                            intensityText,
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
                           ),
+                        ),
+                        SvgPicture.asset(
+                          'lib/assets/vibrate.svg',
+                          semanticsLabel: 'My SVG Image',
+                          height: 24,
                         ),
                       ],
                     ),
                   ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 1, horizontal: 15),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SvgPicture.asset(
-                    'lib/assets/sound-on.svg',
-                    semanticsLabel: 'My SVG Image',
-                    height: 24,
-                  ),
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: intensityColor,
-                    ),
-                  ),
-                  Container(
-                    width: 50,
-                    height: 50,
-                    child: Text(intensityText),
-                  ),
-                  // SvgPicture.asset(
-                  //   'lib/assets/vibrate.svg',
-                  //   semanticsLabel: 'My SVG Image',
-                  //   height: 24,
-                  // ),
                 ],
               ),
             ),
+            isAdvanced
+                ? Column(
+                    children: [
+                      SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Flexible(
+                            flex: 1,
+                            child: Container(
+                              color: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 5, horizontal: 8),
+                              alignment: Alignment.centerLeft,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "AC: 25 µT",
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w900),
+                                  ),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "Threshold: 3 µT",
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
+                                            decoration:
+                                                TextDecoration.underline),
+                                      ),
+                                      Container(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.green.shade100,
+                                          ),
+                                          child: Center(
+                                            child: Icon(
+                                              Icons
+                                                  .check_circle_outline_outlined,
+                                              color: Colors.green,
+                                              size: 20,
+                                            ),
+                                          ))
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 20,
+                          ),
+                          Flexible(
+                            flex: 1,
+                            child: Container(
+                              color: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 5, horizontal: 8),
+                              alignment: Alignment.centerLeft,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "AC: 25 µT",
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w900),
+                                  ),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "Threshold: 3 µT",
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w500,
+                                            decoration:
+                                                TextDecoration.underline),
+                                      ),
+                                      Container(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.green.shade100,
+                                          ),
+                                          child: Center(
+                                            child: Icon(
+                                              Icons
+                                                  .check_circle_outline_outlined,
+                                              color: Colors.green,
+                                              size: 20,
+                                            ),
+                                          ))
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      SizedBox(
+                        height: 50,
+                        child: Container(
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(5),
+                                color: Colors.white),
+                            padding: EdgeInsets.symmetric(
+                                vertical: 5, horizontal: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.pause),
+                                SizedBox(
+                                  width: 10,
+                                ),
+                                Text(
+                                  "Deactivate",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            )),
+                      ),
+                    ],
+                  )
+                : SizedBox(),
+            SizedBox(
+                width: 180,
+                child: Text(
+                  isAdvanced
+                      ? "on"
+                      : "The indicator rotates when a high emf is detected",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                  ),
+                )),
+            SizedBox(height: 40),
+            GestureDetector(
+              onTap: () {},
+              child: SizedBox(
+                width: double.infinity,
+                height: 60,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: const Color.fromARGB(255, 232, 232, 232)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Advanced options",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      CustomToggleButton(
+                          isAdvanced: isAdvanced, onToggle: toggleIsAdvanced),
+                    ],
+                  ),
+                ),
+              ),
+            )
           ],
         ),
       ),
@@ -220,6 +350,60 @@ class _ElectromagneticFieldDetectorState
     super.dispose();
   }
 }
+
+class CustomToggleButton extends StatefulWidget {
+  final bool isAdvanced;
+  final VoidCallback onToggle;
+
+  const CustomToggleButton({
+    required this.isAdvanced,
+    required this.onToggle,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  _CustomToggleButtonState createState() => _CustomToggleButtonState();
+}
+
+class _CustomToggleButtonState extends State<CustomToggleButton> {
+  // bool isToggled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // setState(() {
+        widget.onToggle();
+        // });
+      },
+      child: Container(
+        width: 50,
+        height: 28,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: widget.isAdvanced ? Colors.red.shade900 : Colors.grey,
+        ),
+        child: Stack(
+          // alignment: ali,
+          children: [
+            Positioned(
+              left: widget.isAdvanced ? 25 : 3,
+              child: Container(
+                width: 22,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // import 'dart:async';
 // import 'dart:math';
 
