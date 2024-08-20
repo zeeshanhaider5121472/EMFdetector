@@ -73,12 +73,19 @@ class _ElectromagneticFieldDetectorState
     return Colors.red;
   }
 
+  String _getIntensityText(double strength) {
+    if (strength < 55) return "Normal EMF detected";
+    // if (strength < 100) return Colors.yellow;
+    return "High EMF detected";
+  }
+
   @override
   Widget build(BuildContext context) {
     // bool isSpinning = false;
 
     int totalEMF = _dcEMF + _acEMF;
     Color intensityColor = _getIntensityColor((totalEMF).toDouble());
+    String intensityText = _getIntensityText((totalEMF).toDouble());
 
     return Card(
       child: Padding(
@@ -86,52 +93,115 @@ class _ElectromagneticFieldDetectorState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Electromagnetic Field Detector',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            // Text(
+            //   'Electromagnetic Field Detector',
+            //   style: Theme.of(context).textTheme.headlineSmall,
+            // ),
+            // Center(
+            //   child: AnimatedBuilder(
+            //     animation: _animation,
+            //     builder: (context, child) {
+            //       return Transform.rotate(
+            //         angle: _animation.value,
+            //         child: child,
+            //       );
+            //     },
+            //     child: SvgPicture.asset(
+            //       'lib/assets/s1.svg',
+            //       semanticsLabel: 'My SVG Image',
+            //       height: 150,
+            //     ),
+            //   ),
+            // ),
+            // SizedBox(height: 16),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+            //   children: [
+            //     Column(
+            //       children: [
+            //         Text('DC EMF: ${_dcEMF.toStringAsFixed(0)} µT'),
+            //         Text('AC EMF: ${_acEMF.toStringAsFixed(0)} µT'),
+            //         Text('Total EMF: ${totalEMF.toStringAsFixed(2)} µT'),
+            //       ],
+            //     ),
+            //     Container(
+            //       width: 50,
+            //       height: 50,
+            //       decoration: BoxDecoration(
+            //         shape: BoxShape.circle,
+            //         color: intensityColor,
+            //       ),
+            //     ),
+            //   ],
+            // ),
+            // SizedBox(height: 16),
+            // Text('Individual Components:'),
+            // Text('X: ${_magneticField[0].toStringAsFixed(2)} µT'),
+            // Text('Y: ${_magneticField[1].toStringAsFixed(2)} µT'),
+            // Text('Z: ${_magneticField[2].toStringAsFixed(2)} µT'),
             Center(
-              child: AnimatedBuilder(
-                animation: _animation,
-                builder: (context, child) {
-                  return Transform.rotate(
-                    angle: _animation.value,
-                    child: child,
-                  );
-                },
-                child: SvgPicture.asset(
-                  'lib/assets/s1.svg',
-                  semanticsLabel: 'My SVG Image',
-                  height: 300,
+              child: SizedBox(
+                height: 500,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Center(
+                          child: AnimatedBuilder(
+                            animation: _animation,
+                            builder: (context, child) {
+                              return Transform.rotate(
+                                angle: _animation.value,
+                                child: child,
+                              );
+                            },
+                            child: SvgPicture.asset(
+                              'lib/assets/s1.svg',
+                              semanticsLabel: 'My SVG Image',
+                              height: 200,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: [
-                    Text('DC EMF: ${_dcEMF.toStringAsFixed(0)} µT'),
-                    Text('AC EMF: ${_acEMF.toStringAsFixed(0)} µT'),
-                    Text('Total EMF: ${totalEMF.toStringAsFixed(2)} µT'),
-                  ],
-                ),
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: intensityColor,
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 1, horizontal: 15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SvgPicture.asset(
+                    'lib/assets/sound-on.svg',
+                    semanticsLabel: 'My SVG Image',
+                    height: 24,
                   ),
-                ),
-              ],
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: intensityColor,
+                    ),
+                  ),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    child: Text(intensityText),
+                  ),
+                  // SvgPicture.asset(
+                  //   'lib/assets/vibrate.svg',
+                  //   semanticsLabel: 'My SVG Image',
+                  //   height: 24,
+                  // ),
+                ],
+              ),
             ),
-            SizedBox(height: 16),
-            Text('Individual Components:'),
-            Text('X: ${_magneticField[0].toStringAsFixed(2)} µT'),
-            Text('Y: ${_magneticField[1].toStringAsFixed(2)} µT'),
-            Text('Z: ${_magneticField[2].toStringAsFixed(2)} µT'),
           ],
         ),
       ),

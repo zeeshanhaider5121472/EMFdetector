@@ -59,6 +59,9 @@ flutter:
   uses-material-design: true
   assets:
     - lib/assets/s1.svg
+    - lib/assets/sound-on.svg
+    - lib/assets/sound-off.svg
+    - lib/assets/vibrate.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
