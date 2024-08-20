@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_sensors/flutter_sensors.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:vibration/vibration.dart';
 
 class ElectromagneticFieldDetector extends StatefulWidget {
   @override
@@ -23,6 +24,7 @@ class _ElectromagneticFieldDetectorState
   late Animation<double> _animation;
   bool isAdvanced = false;
   bool isMagnetometerActive = true;
+  bool isVibrate = true;
 
   void toggleIsAdvanced() {
     setState(() {
@@ -33,6 +35,7 @@ class _ElectromagneticFieldDetectorState
   @override
   void initState() {
     super.initState();
+    // _requestVibrationPermission();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -40,6 +43,15 @@ class _ElectromagneticFieldDetectorState
     _animation = Tween<double>(begin: 0, end: 2 * pi).animate(_controller);
     _initMagnetometer();
   }
+
+  // Future<void> _requestVibrationPermission() async {
+  //   PermissionStatus status = await Permission.vibration.request();
+  //   if (status.isGranted) {
+  //     // Proceed with vibration
+  //   } else {
+  //     // Handle permission denied case
+  //   }
+  // }
 
   void _initMagnetometer() async {
     final stream = await SensorManager().sensorUpdates(
@@ -57,12 +69,20 @@ class _ElectromagneticFieldDetectorState
   }
 
   void _updateAnimation() {
-    if (_acEMF > 2 || _dcEMF > 60) {
+    if (_acEMF > 3 || _dcEMF > 120) {
       if (!_controller.isAnimating) {
         _controller.repeat();
       }
     } else {
       _controller.stop();
+    }
+  }
+
+  void _startVibration() async {
+    if (_acEMF > 3 || _dcEMF > 120) {
+      Vibration.vibrate(pattern: [500, 200], repeat: -1);
+    } else {
+      await Vibration.cancel(); // Stop the vibration
     }
   }
 
@@ -83,6 +103,11 @@ class _ElectromagneticFieldDetectorState
 
   String _getIntensityText(double strength) {
     if (_acEMF >= 3 || _dcEMF >= 120) {
+      if (isVibrate == true) {
+        _startVibration();
+      } else {
+        Vibration.cancel();
+      }
       return "High EMF detected";
     } else {
       return "Normal EMF detected";
@@ -91,8 +116,6 @@ class _ElectromagneticFieldDetectorState
 
   @override
   Widget build(BuildContext context) {
-    bool isTick = (_acEMF >= 3 || _dcEMF >= 120);
-
     int totalEMF = _dcEMF + _acEMF;
     Color intensityColor = _getIntensityColor((totalEMF).toDouble());
     String intensityText = _getIntensityText((totalEMF).toDouble());
@@ -157,11 +180,21 @@ class _ElectromagneticFieldDetectorState
                                 fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        SvgPicture.asset(
-                          'lib/assets/vibrate.svg',
-                          semanticsLabel: 'My SVG Image',
-                          height: 24,
-                        ),
+                        GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                isVibrate = !isVibrate;
+                              });
+                            },
+                            child: isVibrate
+                                ? Icon(
+                                    Icons.vibration,
+                                    color: Colors.black,
+                                  )
+                                : Icon(
+                                    Icons.vibration,
+                                    color: Colors.grey,
+                                  )),
                       ],
                     ),
                   ),
@@ -180,7 +213,7 @@ class _ElectromagneticFieldDetectorState
                               titleName: 'AC',
                               value: _acEMF.toStringAsFixed(0),
                               thresholdValue: '3',
-                              isTick: isTick,
+                              isTick: _acEMF >= 3,
                             ),
                           ),
                           SizedBox(
@@ -192,7 +225,7 @@ class _ElectromagneticFieldDetectorState
                               titleName: 'DC',
                               value: _dcEMF.toStringAsFixed(0),
                               thresholdValue: '120',
-                              isTick: isTick,
+                              isTick: _dcEMF >= 120,
                             ),
                           ),
                         ],
@@ -308,6 +341,11 @@ class AcDcDisplay extends StatelessWidget {
     required this.isTick,
     super.key,
   });
+//   isTick
+//   ?
+//   Vibration.vibrate(pattern: [100, 200, 400], repeat: -1)
+//   :
+// Vibration.cancel();
 
   @override
   Widget build(BuildContext context) {
