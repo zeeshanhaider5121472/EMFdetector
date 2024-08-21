@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_sensors/flutter_sensors.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:vibration/vibration.dart';
 
 class ElectromagneticFieldDetector extends StatefulWidget {
@@ -25,6 +26,9 @@ class _ElectromagneticFieldDetectorState
   bool isAdvanced = false;
   bool isMagnetometerActive = true;
   bool isVibrate = true;
+  bool isSound = true;
+  final AudioPlayer audioPlayer = AudioPlayer();
+  final _player = new AudioPlayer();
 
   void toggleIsAdvanced() {
     setState(() {
@@ -32,10 +36,15 @@ class _ElectromagneticFieldDetectorState
     });
   }
 
+  void _playAudio() async {
+    _player.setAudioSource(AudioSource.asset("audio/sound_spin.mp3"));
+    _player.setLoopMode(LoopMode.all);
+    _player.play();
+  }
+
   @override
   void initState() {
     super.initState();
-    // _requestVibrationPermission();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -43,15 +52,6 @@ class _ElectromagneticFieldDetectorState
     _animation = Tween<double>(begin: 0, end: 2 * pi).animate(_controller);
     _initMagnetometer();
   }
-
-  // Future<void> _requestVibrationPermission() async {
-  //   PermissionStatus status = await Permission.vibration.request();
-  //   if (status.isGranted) {
-  //     // Proceed with vibration
-  //   } else {
-  //     // Handle permission denied case
-  //   }
-  // }
 
   void _initMagnetometer() async {
     final stream = await SensorManager().sensorUpdates(
@@ -72,9 +72,16 @@ class _ElectromagneticFieldDetectorState
     if (_acEMF > 3 || _dcEMF > 120) {
       if (!_controller.isAnimating) {
         _controller.repeat();
+        _playAudio();
+        // if (isSound == true) {
+        //   _playAudio();
+        // } else {
+        //   _player.stop();
+        // }
       }
     } else {
       _controller.stop();
+      _player.stop();
     }
   }
 
@@ -166,11 +173,23 @@ class _ElectromagneticFieldDetectorState
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        SvgPicture.asset(
-                          'lib/assets/sound-on.svg',
-                          semanticsLabel: 'My SVG Image',
-                          height: 24,
-                        ),
+                        GestureDetector(
+                            onTap: () async {
+                              setState(() {
+                                isSound = !isSound;
+                              });
+                            },
+                            child: isSound
+                                ? SvgPicture.asset(
+                                    'lib/assets/sound-on.svg',
+                                    semanticsLabel: 'My SVG Image',
+                                    height: 24,
+                                  )
+                                : SvgPicture.asset(
+                                    'lib/assets/sound-off.svg',
+                                    semanticsLabel: 'My SVG Image',
+                                    height: 24,
+                                  )),
                         Container(
                           alignment: Alignment.center,
                           height: 50,
