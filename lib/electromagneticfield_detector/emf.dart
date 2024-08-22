@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_sensors/flutter_sensors.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:vibration/vibration.dart';
 
 class ElectromagneticFieldDetector extends StatefulWidget {
@@ -27,20 +31,8 @@ class _ElectromagneticFieldDetectorState
   bool isMagnetometerActive = true;
   bool isVibrate = true;
   bool isSound = true;
-  final AudioPlayer audioPlayer = AudioPlayer();
-  final _player = new AudioPlayer();
-
-  void toggleIsAdvanced() {
-    setState(() {
-      isAdvanced = !isAdvanced;
-    });
-  }
-
-  void _playAudio() async {
-    _player.setAudioSource(AudioSource.asset("audio/sound_spin.mp3"));
-    _player.setLoopMode(LoopMode.all);
-    _player.play();
-  }
+  late AudioPlayer _player;
+  String? _audioFilePath;
 
   @override
   void initState() {
@@ -51,6 +43,69 @@ class _ElectromagneticFieldDetectorState
     );
     _animation = Tween<double>(begin: 0, end: 2 * pi).animate(_controller);
     _initMagnetometer();
+    _player = AudioPlayer();
+    // _getAudioFilePath();
+    _copyAssetToLocal();
+  }
+
+  void toggleIsAdvanced() {
+    setState(() {
+      isAdvanced = !isAdvanced;
+    });
+  }
+
+  Future<void> _copyAssetToLocal() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File('${directory.path}/audio/sound_spin.mp3');
+
+    if (!await file.exists()) {
+      await file.create(recursive: true);
+      ByteData data = await rootBundle.load('audio/sound_spin.mp3');
+      await file.writeAsBytes(data.buffer.asUint8List());
+    }
+
+    setState(() {
+      _audioFilePath = file.path;
+    });
+  }
+
+  // Future<void> _getAudioFilePath() async {
+  //   setState(() {
+  //     _audioFilePath = 'audio/sound_spin.mp3';
+  //   });
+  // }
+
+  // Future<void> _playAudio() async {
+  //   try {
+  //     if (isSound) {
+  //       await _player.play();
+  //     } else {
+  //       await _player.stop(); // Stop audio immediately when sound is off
+  //     }
+  //   } catch (e) {
+  //     print("Error loading audio: $e");
+  //   }
+  // }
+  Future<void> _playAudio() async {
+    try {
+      if (isSound) {
+        await _playAudioNow();
+      } else {
+        await _stopAudio(); // Stop audio immediately when sound is off
+      }
+    } catch (e) {
+      print("Error loading audio: $e");
+    }
+  }
+
+  Future<void> _playAudioNow() async {
+    await _player.setSource(DeviceFileSource(_audioFilePath!));
+    _player.setReleaseMode(ReleaseMode.loop);
+    await _player.play(DeviceFileSource(_audioFilePath!));
+  }
+
+  Future<void> _stopAudio() async {
+    await _player.stop();
   }
 
   void _initMagnetometer() async {
@@ -68,20 +123,18 @@ class _ElectromagneticFieldDetectorState
     });
   }
 
-  void _updateAnimation() {
+  void _updateAnimation() async {
     if (_acEMF > 3 || _dcEMF > 120) {
       if (!_controller.isAnimating) {
         _controller.repeat();
-        _playAudio();
-        // if (isSound == true) {
-        //   _playAudio();
-        // } else {
-        //   _player.stop();
-        // }
+        await _playAudio();
       }
     } else {
       _controller.stop();
-      _player.stop();
+      if (isSound) {
+        // Stop audio only if sound is enabled
+        await _player.stop();
+      }
     }
   }
 
@@ -139,162 +192,15 @@ class _ElectromagneticFieldDetectorState
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Center(
-                    child: SizedBox(
-                      height: isAdvanced ? 350 : 450,
-                      child: Container(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Center(
-                              child: AnimatedBuilder(
-                                animation: _animation,
-                                builder: (context, child) {
-                                  return Transform.rotate(
-                                    angle: _animation.value,
-                                    child: child,
-                                  );
-                                },
-                                child: SvgPicture.asset(
-                                  'lib/assets/s1.svg',
-                                  semanticsLabel: 'My SVG Image',
-                                  height: 200,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  SpinnerWheel(isAdvanced: isAdvanced, animation: _animation),
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 1, horizontal: 15),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        GestureDetector(
-                            onTap: () async {
-                              setState(() {
-                                isSound = !isSound;
-                              });
-                            },
-                            child: isSound
-                                ? SvgPicture.asset(
-                                    'lib/assets/sound-on.svg',
-                                    semanticsLabel: 'My SVG Image',
-                                    height: 24,
-                                  )
-                                : SvgPicture.asset(
-                                    'lib/assets/sound-off.svg',
-                                    semanticsLabel: 'My SVG Image',
-                                    height: 24,
-                                  )),
-                        Container(
-                          alignment: Alignment.center,
-                          height: 50,
-                          child: Text(
-                            intensityText,
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isVibrate = !isVibrate;
-                              });
-                            },
-                            child: isVibrate
-                                ? Icon(
-                                    Icons.vibration,
-                                    color: Colors.black,
-                                  )
-                                : Icon(
-                                    Icons.vibration,
-                                    color: Colors.grey,
-                                  )),
-                      ],
-                    ),
+                    child: preferencesSetting(intensityText),
                   ),
                 ],
               ),
             ),
-            isAdvanced
-                ? Column(
-                    children: [
-                      SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Flexible(
-                            flex: 1,
-                            child: AcDcDisplay(
-                              titleName: 'AC',
-                              value: _acEMF.toStringAsFixed(0),
-                              thresholdValue: '3',
-                              isTick: _acEMF >= 3,
-                            ),
-                          ),
-                          SizedBox(
-                            width: 20,
-                          ),
-                          Flexible(
-                            flex: 1,
-                            child: AcDcDisplay(
-                              titleName: 'DC',
-                              value: _dcEMF.toStringAsFixed(0),
-                              thresholdValue: '120',
-                              isTick: _dcEMF >= 120,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            isMagnetometerActive = !isMagnetometerActive;
-                          });
-                          if (isMagnetometerActive) {
-                            _initMagnetometer(); // Restart magnetometer
-                            _controller.repeat(); // Restart animation
-                          } else {
-                            _magnetometerSubscription
-                                ?.cancel(); // Stop magnetometer
-                            _controller.stop(); // Stop animation
-                          }
-                        },
-                        child: SizedBox(
-                          height: 50,
-                          child: Container(
-                              decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(5),
-                                  color: Colors.white),
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 5, horizontal: 8),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(isMagnetometerActive
-                                      ? Icons.pause
-                                      : Icons.play_arrow),
-                                  SizedBox(
-                                    width: 10,
-                                  ),
-                                  Text(
-                                    isMagnetometerActive
-                                        ? "Deactivate"
-                                        : "Activate",
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              )),
-                        ),
-                      ),
-                    ],
-                  )
-                : SizedBox(),
+            isAdvanced ? acdcDisplay() : SizedBox(),
             SizedBox(
               height: 20,
             ),
@@ -308,30 +214,158 @@ class _ElectromagneticFieldDetectorState
                   ),
                 )),
             SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey.shade100),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Advanced options",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    CustomToggleButton(
-                        isAdvanced: isAdvanced, onToggle: toggleIsAdvanced),
-                  ],
-                ),
-              ),
-            )
+            advancedOptionsPanel()
           ],
         ),
       ),
+    );
+  }
+
+  Row preferencesSetting(String intensityText) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        GestureDetector(
+            onTap: () async {
+              setState(() {
+                isSound = !isSound;
+              });
+              if (!isSound) {
+                // Stop audio immediately when sound is turned off
+                await _player.stop();
+              } else {
+                // Play audio only if sound is enabled
+                await _playAudio();
+              }
+            },
+            child: isSound
+                ? SvgPicture.asset(
+                    'lib/assets/sound-on.svg',
+                    semanticsLabel: 'My SVG Image',
+                    height: 24,
+                  )
+                : SvgPicture.asset(
+                    'lib/assets/sound-off.svg',
+                    semanticsLabel: 'My SVG Image',
+                    height: 24,
+                  )),
+        Container(
+          alignment: Alignment.center,
+          height: 50,
+          child: Text(
+            intensityText,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+        GestureDetector(
+            onTap: () {
+              setState(() {
+                isVibrate = !isVibrate;
+              });
+            },
+            child: isVibrate
+                ? Icon(
+                    Icons.vibration,
+                    color: Colors.black,
+                  )
+                : Icon(
+                    Icons.vibration,
+                    color: Colors.grey,
+                  )),
+      ],
+    );
+  }
+
+  SizedBox advancedOptionsPanel() {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.grey.shade100),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Advanced options",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            CustomToggleButton(
+                isAdvanced: isAdvanced, onToggle: toggleIsAdvanced),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Column acdcDisplay() {
+    return Column(
+      children: [
+        SizedBox(height: 20),
+        Row(
+          children: [
+            Flexible(
+              flex: 1,
+              child: AcDcDisplay(
+                titleName: 'AC',
+                value: _acEMF.toStringAsFixed(0),
+                thresholdValue: '3',
+                isTick: _acEMF >= 3,
+              ),
+            ),
+            SizedBox(
+              width: 20,
+            ),
+            Flexible(
+              flex: 1,
+              child: AcDcDisplay(
+                titleName: 'DC',
+                value: _dcEMF.toStringAsFixed(0),
+                thresholdValue: '120',
+                isTick: _dcEMF >= 120,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 20),
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              isMagnetometerActive = !isMagnetometerActive;
+            });
+            if (isMagnetometerActive) {
+              _initMagnetometer(); // Restart magnetometer
+              _controller.repeat(); // Restart animation
+            } else {
+              _magnetometerSubscription?.cancel(); // Stop magnetometer
+              _controller.stop(); // Stop animation
+            }
+          },
+          child: SizedBox(
+            height: 50,
+            child: Container(
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    color: Colors.white),
+                padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(isMagnetometerActive ? Icons.pause : Icons.play_arrow),
+                    SizedBox(
+                      width: 10,
+                    ),
+                    Text(
+                      isMagnetometerActive ? "Deactivate" : "Activate",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                )),
+          ),
+        ),
+      ],
     );
   }
 
@@ -344,7 +378,52 @@ class _ElectromagneticFieldDetectorState
   void dispose() {
     _controller.dispose();
     _magnetometerSubscription?.cancel();
+    _player.dispose();
     super.dispose();
+  }
+}
+
+class SpinnerWheel extends StatelessWidget {
+  const SpinnerWheel({
+    super.key,
+    required this.isAdvanced,
+    required Animation<double> animation,
+  }) : _animation = animation;
+
+  final bool isAdvanced;
+  final Animation<double> _animation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        height: isAdvanced ? 350 : 450,
+        child: Container(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: AnimatedBuilder(
+                  animation: _animation,
+                  builder: (context, child) {
+                    return Transform.rotate(
+                      angle: _animation.value,
+                      child: child,
+                    );
+                  },
+                  child: SvgPicture.asset(
+                    'lib/assets/s1.svg',
+                    semanticsLabel: 'My SVG Image',
+                    height: 200,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

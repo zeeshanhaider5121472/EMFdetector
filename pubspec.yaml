@@ -37,7 +37,7 @@ dependencies:
   flutter_sensors: ^1.0.1
   flutter_svg: ^2.0.10+1
   vibration: ^2.0.0
-  just_audio: ^0.9.37
+  audioplayers: ^6.0.0
 
   # permission_handler: ^11.3.1
 
